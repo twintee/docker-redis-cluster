@@ -4,8 +4,7 @@
 import os
 import sys
 from os.path import join, dirname, abspath, isfile, isdir
-import time
-import shutil
+import argparse
 
 from dotenv import load_dotenv
 
@@ -16,33 +15,39 @@ import helper as fn
 os.chdir(dir_scr)
 file_env = os.path.join(dir_scr, ".env")
 
-def main():
+def main(_args):
     """
     initialize container
     """
 
-    load_dotenv(file_env)
-    node = str(os.getenv("NODE"))
+    envs = fn.getenv(file_env)
+    node = envs['NODE']
+    if not _args.node is None:
+        node = _args.node
     if node == "":
         print(f"[error] node type not set.")
         sys.exit()
 
-    # コンテナ削除
+    target = ""
+    if node != "all":
+        target = f"rds-{node}"
+
+    # サービス削除
     cmd_down = "docker-compose down"
-    _input = input("initialize volumes. ok? (y/*) :").lower()
-    if _input in ["y", "yes"]:
-        # ボリューム削除
-        print("[info] reset volume.")
-        cmd_down = "docker-compose down --volume"
-        dir_vol = join(dir_scr, "vol", node)
-        os.removedirs(dir_vol)
     for line in fn.cmdlines(_cmd=cmd_down):
         sys.stdout.write(line)
-    # コンテナ作成
-    for line in fn.cmdlines(_cmd=f"docker-compose up -d rds-{node}"):
+
+    fn.rmdir(join(dir_scr, "vol", node))
+
+    # サービス作成
+    for line in fn.cmdlines(_cmd=f"docker-compose up -d {target}"):
         sys.stdout.write(line)
 
 if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description='set env params')
+    parser.add_argument('--node', '-n', help="(option) set generate node type. 'master' or 'slave' or 'all'")
+    args = parser.parse_args()
 
     _input = input("initialize container. ok? (y/*) :").lower()
     if not _input in ["y", "yes"]:
@@ -50,5 +55,5 @@ if __name__ == "__main__":
         sys.exit()
 
     print("[info] initialize start.")
-    main()
+    main(args)
     print("[info] initialize end.")
