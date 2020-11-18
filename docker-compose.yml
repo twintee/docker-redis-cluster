@@ -1,0 +1,32 @@
+version: '2'
+
+services:
+
+  rds-master:
+    image: redis:6-alpine
+    container_name: node-redis-master
+    ports:
+      - "${MASTER_PORT}:6379"
+    environment:
+      TZ: ${TZ}
+    command: redis-server --requirepass ${MASTER_PASS}
+    volumes:
+       - ./vol/master:/data
+      #  - ./_conf/redis.conf:/usr/local/etc/redis/redis.conf
+    mem_limit: ${MEM}
+    restart: always
+
+  rds-slave:
+    image: redis:6-alpine
+    container_name: node-redis-slave
+    ports:
+      - "${SLAVE_PORT}:6379"
+    environment:
+      TZ: ${TZ}
+    command: redis-server --requirepass ${SLAVE_PASS} --slaveof ${MASTER_HOST} ${MASTER_PORT} --masterauth ${MASTER_PASS}
+    volumes:
+       - ./vol/slave:/data
+      #  - ./_conf/redis.conf:/usr/local/etc/redis/redis.conf
+    mem_limit: ${MEM}
+    restart: always
+
